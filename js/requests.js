@@ -2887,12 +2887,17 @@ async function handleMemoSubmitFromModal(e) {
 
         await apiCall('POST', 'updateRequest', updatePayload);
 
-        if (typeof db !== 'undefined') {
-            const docId = requestId.replace(/[\/\\:\.]/g, '-');
-            await db.collection('requests').doc(docId).set({
-                ...updatePayload,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+        if (typeof db !== "undefined") {
+            const docId = requestId.replace(/[\/\\:\.]/g, "-");
+            try {
+                await db.collection("requests").doc(docId).set({
+                    ...updatePayload,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (e) {
+                console.warn("⚠️ Firestore update failed (Permission?):", e.message);
+                // ไม่บล็อกการทำงานหลัก เพราะบันทึกลง GAS สำเร็จแล้ว
+            }
         }
 
         // ── 6. แจ้งผลและรีเฟรช ──
