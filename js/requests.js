@@ -2891,13 +2891,24 @@ async function handleMemoSubmitFromModal(e) {
         if (typeof db !== "undefined") {
             const docId = requestId.replace(/[\/\\:\.]/g, "-");
             try {
+                const fbUser = firebase.auth().currentUser;
+                console.log("🔍 Debug Firestore Update:", {
+                    docId: docId,
+                    currentUser: user.username,
+                    firebaseAuthUid: fbUser ? fbUser.uid : "null",
+                    payload: updatePayload
+                });
                 await db.collection("requests").doc(docId).set({
                     ...updatePayload,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             } catch (e) {
-                console.warn("⚠️ Firestore update failed (Permission?):", e.message);
-                // ไม่บล็อกการทำงานหลัก เพราะบันทึกลง GAS สำเร็จแล้ว
+                console.error("❌ Firestore Permission Error:", e.message);
+                // ถ้าเป็น Permission Error ให้แจ้งเตือนผู้ใช้ให้ชัดเจน
+                if (e.code === "permission-denied") {
+                    throw new Error("สิทธิ์ในการเข้าถึงฐานข้อมูลไม่ถูกต้อง (Permission Denied) กรุณาแจ้งผู้ดูแลระบบให้ตรวจสอบ Security Rules");
+                }
+                throw e;
             }
         }
 
