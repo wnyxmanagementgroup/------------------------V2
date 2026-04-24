@@ -2877,8 +2877,9 @@ async function handleMemoSubmitFromModal(e) {
         const updatePayload = {
             requestId:   requestId,
             docStatus:   forwardToStatus,
-            status:      'Submitted',
+            status:      "Submitted",
             wasRejected: false,
+            username:    user.username,
         };
         if (finalFileUrlForAdmin) {
             updatePayload.completedMemoUrl = finalFileUrlForAdmin;
