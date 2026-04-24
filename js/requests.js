@@ -2803,18 +2803,32 @@ async function handleMemoSubmitFromModal(e) {
             // แหล่ง B: fetch จาก preSignedUrl (Firebase Storage — ต้อง CORS)
             let memoBlob = null;
             if (window._memoAutoBase64) {
-                const raw = window._memoAutoBase64.replace(/^data:[^;]+;base64,/, '');
-                const bin = atob(raw);
-                const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                memoBlob = new Blob([arr], { type: 'application/pdf' });
-            } else if (preSignedUrl) {
-                btn.innerHTML = '<div class="loader"></div> กำลังโหลดบันทึก...';
-                const resp = await fetch(preSignedUrl);
-                if (!resp.ok) throw new Error('ไม่สามารถโหลดเอกสารบันทึกข้อความได้ (HTTP ' + resp.status + ')');
-                memoBlob = await resp.blob();
-            } else if (!isAdmin) {
-                throw new Error('ไม่พบเอกสารบันทึกข้อความ กรุณาสร้างบันทึกก่อนส่ง');
+                try {
+                    const raw = window._memoAutoBase64.replace(/^data:[^;]+;base64,/, "");
+                    const bin = atob(raw);
+                    const arr = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                    memoBlob = new Blob([arr], { type: "application/pdf" });
+                } catch (e) {
+                    console.warn("⚠️ Failed to decode _memoAutoBase64:", e.message);
+                    memoBlob = null;
+                }
+            }
+            
+            if (!memoBlob && preSignedUrl) {
+                btn.innerHTML = "<div class=\"loader\"></div> กำลังโหลดบันทึก...";
+                try {
+                    const resp = await fetch(preSignedUrl);
+                    if (!resp.ok) throw new Error("HTTP " + resp.status);
+                    memoBlob = await resp.blob();
+                } catch (e) {
+                    console.warn("⚠️ Failed to fetch preSignedUrl:", e.message);
+                    if (!isAdmin) throw new Error("ไม่สามารถโหลดเอกสารบันทึกข้อความได้: " + e.message);
+                }
+            }
+
+            if (!memoBlob && !isAdmin) {
+                throw new Error("ไม่พบเอกสารบันทึกข้อความ กรุณาสร้างบันทึกก่อนส่ง");
             }
 
             // ── 2. ไฟล์แนบเพิ่มเติม (ตามลำดับที่อัปโหลด) ──
